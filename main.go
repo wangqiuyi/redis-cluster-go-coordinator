@@ -97,7 +97,7 @@ func main() {
 		}
 
 		for idx := range redisClusterSeedNodes {
-			session.Connection.LPush(config.RegisteredNodesQueue, redisClusterSeedNodes[idx])
+			session.Connection.SAdd(config.RegisteredNodesQueue, redisClusterSeedNodes[idx])
 		}
 		session.Connection.Set(config.FlagIsClusterCreated, "true", 0)
 		fmt.Println("Cluster creation complete.")
@@ -109,7 +109,7 @@ func main() {
 	// Cluster is created, lets monitor and add nodes if needed
 	if len(redisClusterSeedNodes) == 0 {
 		for {
-			redisClusterSeedNodes, err = session.Connection.LRange(config.RegisteredNodesQueue, 0, -1).Result()
+			redisClusterSeedNodes, err = session.Connection.SMembers(config.RegisteredNodesQueue).Result()
 			if err != nil {
 				fmt.Printf("Error %v in retrieving seed nodes, re-attempt in few seconds\n", err)
 				time.Sleep(10 * time.Second)
@@ -124,6 +124,13 @@ func main() {
 
 MAINLOOP:
 	for true {
+
+		redisClusterSeedNodes, err = session.Connection.SMembers(config.RegisteredNodesQueue).Result()
+		if err != nil {
+			fmt.Printf("Error %v in retrieving seed nodes, re-attempt in few seconds\n", err)
+			time.Sleep(10 * time.Second)
+			continue
+		}
 
 		var queueLength int64
 		queueLength, err = session.Connection.LLen(config.ClusterRegistrationQueue).Result()
@@ -292,7 +299,7 @@ MAINLOOP:
 					continue MAINLOOP
 				}
 
-				session.Connection.LPush(config.RegisteredNodesQueue, newNode)
+				session.Connection.SAdd(config.RegisteredNodesQueue, newNode)
 				fmt.Printf("Processing of new node %v complete.\n", newNode)
 
 			} else {
@@ -335,7 +342,7 @@ MAINLOOP:
 							continue
 						}
 
-						session.Connection.LPush(config.RegisteredNodesQueue, newNode)
+						session.Connection.SAdd(config.RegisteredNodesQueue, newNode)
 						flagNodeProcessed = true
 
 						fmt.Printf("Successfully configured node %v to be replica of node %v\n", newNode, masterNodes[idx]["ip"])
