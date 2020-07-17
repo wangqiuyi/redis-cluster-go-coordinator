@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/go-redis/redis/v7"
-	"github.com/sarweshsuman/redis-cluster-go-coordinator/config"
+	"github.com/wangqiuyi/redis-cluster-go-coordinator/config"
 )
 
 type RedisSession struct {
